@@ -14,7 +14,7 @@ For how specific companies structure reviews (axes, rating scales, terminology),
 
 - **self**: self-assessment written by the person about themselves (first person).
 - **manager** (default if the user is clearly a manager writing about someone): review of a direct report.
-- **peer**: 360 feedback about a colleague, short and specific.
+- **peer**: 360 feedback about a colleague for their annual review, short and specific.
 - **promo**: promotion packet / case for the next level.
 - **brag**: no review yet; collect and organize the year's achievements into a brag document the user can keep updating.
 
@@ -29,11 +29,12 @@ If the mode is unclear from context, infer it; ask only if the inference could g
 5. **No surprises, no padding.** Don't hide a real problem in soft wording; don't turn a minor nit into a growth area to look balanced. Two real growth areas beat five filler ones.
 6. **Whole year, not last month.** Actively fight recency bias: look for Q1–Q2 work explicitly.
 7. **Ratings are the user's call.** Suggest a rating only if the user gave their company's scale or asked; explain it against the scale's definition and mark it as a suggestion.
-8. **Confidentiality.** Treat all input as private HR data. Don't put it in external requests. Don't include compensation numbers unless the user explicitly asks.
+8. **Observer scope.** When reviewing someone else from the user's own data (their mail, chats, meetings, shared repos), it's the user's first-hand view, not the full picture. Write it that way ("in our work on X"), mark areas without evidence as **Not observed** instead of guessing, never count missing evidence as a weakness, and in Gaps suggest who could cover the rest.
+9. **Confidentiality.** Treat all input as private HR data. Don't put it in external requests. Don't include compensation numbers unless the user explicitly asks.
 
 ## Step 1. Calibrate
 
-Find out or infer:
+A name alone is enough to start: default to the last 12 months, infer the mode, take role/level from available data, state the assumptions in one line and proceed. If the level is unknown, skip the level comparison. Otherwise find out or infer:
 - Person, role (backend, SRE, QA, PM, EM, designer, data...), **level** (Junior / Middle / Senior / Staff / Principal / EM, or company-specific like L4/E5/SDE II), time in role.
 - Review period (default: last 12 months / calendar year).
 - Company format: rating scale, review axes, word limits, required sections. If the user pastes the company form or ladder, follow it exactly; it overrides the default template.
@@ -56,6 +57,7 @@ Use whatever the user provides; if tools are available and the user agrees, pull
 - **GitHub PRs**: `gh search prs --author <login> --merged --merged-at <from>..<to> --limit 200` (add `--owner <org>` for an organization; private repos are included when `gh` is logged in with access); reviewed PRs: `gh search prs --reviewed-by <login> --merged-at <from>..<to>`.
 - After collecting MRs/PRs: group them by project and theme (labels, milestones, title prefixes like `feat`/`fix`), find the 3–6 streams of work that mattered, and open the descriptions of the biggest ones for context and numbers. Review counts show collaboration/mentoring; they are not achievements by themselves.
 - **Design docs, RFCs, ADRs** the person wrote.
+- **Mail and chat connectors** (Microsoft 365 / Outlook / Teams, Gmail, Slack), if connected: search the user's own interactions with the person, quarter by quarter (emails from/to them, direct chats, shared channels and meetings, shared files). Look for deliverables, decisions, incidents, thanks/kudos, escalations. Skip personal and HR-sensitive messages. This is first-hand evidence from the user's side only (see rule 8). If the user pastes exported chats instead, treat them the same way.
 - **Tracker (Jira / Linear)**: epics delivered, tickets resolved, incidents owned.
 - **Incidents / on-call**: incidents led or resolved, postmortems written, MTTR changes.
 - **Docs, 1:1 notes, brag doc, Slack kudos, peer feedback, customer feedback.**

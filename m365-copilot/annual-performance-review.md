@@ -11,7 +11,7 @@ Copilot has no "skills" like Claude, but it has two equivalents:
 
 ## Read this first
 
-- **Copilot only sees what you can see.** As a manager, it finds mail and chats *you* were part of, not the person's private mailbox. For a self-review, it sees everything you have. Say this in the review if evidence is thin.
+- **Copilot only sees what you can see.** For someone else it finds: your emails with them, your 1:1 chats, and group chats, channels, and meetings you both were in. Not their private mail or their chats with others. That is a valid basis for a review or feedback, as long as it is written as *your* view: the prompts below mark areas you couldn't observe as "Not observed" instead of guessing. For a self-review, Copilot sees everything you have.
 - **Copilot won't read a whole year in one go.** Search returns a limited number of items per request. That's why the prompts work **one quarter at a time** and then synthesize. Don't skip this, or the review will cover only the last few weeks.
 - **Check your company's HR/AI policy** before using mail and chats as review evidence for someone else. Many companies allow it for self-reviews and restrict it for reviews of others.
 - Use `/` in Copilot Chat to insert the exact person (it disambiguates people with similar names).
@@ -26,14 +26,16 @@ In Copilot Chat: **Create agent** → *Configure* tab.
 - **Name:** Year-end review assistant
 - **Description:** Builds an evidence-based annual performance review from Outlook, Teams, meetings, and files.
 - **Knowledge:** turn on what your tenant offers: Email, Teams chats and meetings, People, and optionally SharePoint/OneDrive folders with goals, OKRs, career ladder, or brag doc.
-- **Instructions:** paste everything in the block below (≈4,500 characters, under the 8,000 limit).
+- **Instructions:** paste everything in the block below (≈5,500 characters, under the 8,000 limit).
 
 ```text
 You help prepare evidence-based annual performance reviews for people in an IT company, using the user's Outlook email, Teams chats and channel messages, meeting recaps/transcripts, and files.
 
-MODES: self (user reviews themself, first person), manager (user reviews a direct report), peer (360 feedback about a colleague, max 200 words), promo (case for the next level), brag (list of the year's achievements). Infer the mode; ask only if unclear.
+MODES: self (user reviews themself, first person), manager (user reviews a direct report), peer (360 feedback about a colleague for their annual review, max 200 words), promo (case for the next level), brag (list of the year's achievements). Infer the mode; ask only if unclear.
 
-START: Confirm in one short message: person, role, level (Junior/Middle/Senior/Staff/EM or company level), review period (default: last 12 months), mode, and the company's rating scale or review form if any. If the user shared a form, ladder, or goals file, follow it exactly.
+START: A name alone is enough. Use defaults: period = last 12 months; mode = manager if the person reports to the user, otherwise peer; role and level from their profile if available. Confirm these in one short line and proceed; don't block on questions. If level is unknown, don't compare against level. If the user shared a form, ladder, rating scale, or goals file, follow it exactly.
+
+SCOPE: For anyone other than the user, you only see the user's own interactions with that person: emails between them, their chats, and group chats, channels, meetings, and files both took part in. Treat this as the user's first-hand view, not the full picture. Search for it explicitly (from/to the person, chats with the person, meetings with both).
 
 RULES
 1. Evidence only. Every claim must come from an email, chat, meeting, or file you found. Cite it. Never invent projects, numbers, praise, or problems. If impact has no number, describe it concretely and add [metric?].
@@ -43,6 +45,7 @@ RULES
 5. Behavior, not personality. Growth areas need the same evidence standard as strengths. No labels like "abrasive", "emotional", "not a culture fit". Never mention age, gender, family, health, religion, nationality, or leave.
 6. Privacy. Use only work content. Skip personal and HR-sensitive messages (health, family, salary of others, complaints about third parties) and do not quote them. Quote at most one short sentence per source.
 7. Suggest a rating only if the user gave the scale; mark it as a suggestion.
+8. Observer scope. Write from the user's vantage point ("in our work together", "in the X project"). For any area with no evidence in the user's interactions, write "Not observed" instead of guessing, and don't treat absence of evidence as a weakness. In the Gaps list, suggest whom to ask for the rest (other team members, stakeholders the person worked with).
 
 WHAT TO LOOK FOR (per quarter)
 - Projects and deliverables: launches, releases, migrations, go-lives, "done", "shipped", "deployed", "rolled out".
@@ -73,7 +76,7 @@ OUTPUT: the review text ready to paste into the HR tool, then a short "Gaps" lis
 ```
 
 **Using the agent:**
-1. "Prepare a manager review for /Person, Senior Backend Engineer, period Jan 1 – Dec 31 2026."
+1. "Prepare a review for /Person." (a name is enough; add role, level, period, or mode if you want: "peer feedback for /Person, Senior Backend Engineer, 2026")
 2. It confirms the setup and collects Q1. Reply "next quarter" until Q4.
 3. "Now write the review." Then "Run the quality check" if you want a second pass.
 
@@ -88,7 +91,7 @@ Fill in the `[brackets]`, then paste prompts 1 → 4 in the same Copilot Chat co
 ```text
 I'm preparing a [manager / self / peer] year-end performance review for /[Person], [role], [level], for [Jan 1 – Dec 31, 2026].
 
-Search my Outlook email, Teams chats and channel messages, meeting recaps and transcripts, and files from [Jan 1 – Mar 31, 2026] that involve [Person]. Find evidence of their work:
+I don't have access to [Person]'s mailbox or chats, only to my own interactions with them. Search, for [Jan 1 – Mar 31, 2026]: emails from or to [Person], my Teams chats with [Person], group chats, channels, and meetings (recaps, transcripts) where we both took part, and files we both worked on. Find evidence of their work:
 - projects, deliverables, releases, migrations, launches
 - incidents, escalations, on-call, problems they resolved
 - decisions they proposed or drove, designs, presentations, demos, docs
@@ -125,12 +128,21 @@ Structure:
 7. Goals for next period (specific, measurable).
 [8. Suggested rating on this scale: [paste scale]. Mark as a suggestion.]
 
+This is based only on my own interactions with [Person]: write it as my first-hand view. For any area with no evidence, write "Not observed" instead of guessing, and don't count missing evidence as a weakness.
 Style: specific, factual, no hype, no personality labels. [Word limit per section: N]. Language: [English].
 After the review, list Gaps: quarters with little evidence, [metric?] placeholders, claims I should verify.
 ```
 
 For a **self-review**, replace the first line with: "Write my self-assessment in the first person. Add 'What I learned' and 'Support I need from my manager'."
 For **peer feedback**: "Write peer feedback under 200 words: impact on me and the team with one specific example, what to keep doing, one thing to do even better."
+### Quick version: just a name
+
+When you don't need the full quarter-by-quarter pass:
+
+```text
+I need to write 360 feedback about /[Person] for their annual performance review. I only have my own interactions with them: our emails, our Teams chats, and group chats, channels, and meetings we both were in. Search those for the last 12 months, quarter by quarter, and find what [Person] delivered, how they collaborated with me and the team, praise and problems, each with a link.
+Then write the feedback for the review form, in the third person, under 250 words: (1) the 3-5 most important things they did in our work together, with impact; (2) strengths, each with an example; (3) 1-2 areas to grow, each as situation -> behavior -> impact. Only facts from sources; for anything I couldn't observe, say "Not observed". End with a list of the sources used.
+```
 
 ### Prompt 4. Quality check
 
