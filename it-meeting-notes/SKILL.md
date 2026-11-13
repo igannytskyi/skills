@@ -1,6 +1,6 @@
 ---
 name: it-meeting-notes
-description: Turn an IT/engineering meeting transcript, recording summary, chat log, or rough notes into clear minutes - topics discussed, decisions made, action items with owners and due dates, open questions, risks and blockers - plus a short follow-up message for Slack/Teams/email. Handles standups, sprint planning, grooming/refinement, retros, architecture/design reviews, incident postmortems, release/go-no-go, demos, client and vendor calls, 1:1s. Use when the user pastes or uploads a transcript or notes and asks for minutes, a summary, a recap, action items, "что решили", "кто что делает", протокол встречи, итоги созвона, резюме митинга, follow-up after a call.
+description: Turn an IT/engineering meeting transcript, recording summary, chat log, or rough notes into clear minutes - topics discussed, decisions made, action items with owners and due dates, open questions, risks and blockers - plus a short follow-up message for Slack/Teams/email. Handles standups, sprint planning, grooming/refinement, retros, architecture/design reviews, incident postmortems, release/go-no-go, demos, client and vendor calls, 1:1s. Use when the user pastes or uploads a transcript or notes and asks for minutes, a summary, a recap, action items, what was decided, who does what, meeting protocol, call outcomes, or a follow-up after a call, in any language.
 argument-hint: "<transcript or notes> [type: standup|planning|retro|design|incident|release|client|1on1] [format: full|short|slack|jira]"
 ---
 
@@ -106,7 +106,7 @@ Run through this silently and fix what fails:
 
 1. Every decision really was agreed, not just proposed. Every "tentative" has a reason.
 2. Every action item has an owner or is flagged ❓. No owner or date was made up.
-3. Nothing important from the transcript is missing: re-scan for "I'll", "we'll", "let's", "need to", "by Friday", "deadline", "blocker", "decided", "agreed", and their equivalents in the meeting language ("сделаю", "беру на себя", "договорились", "решили", "до пятницы", "надо", "блокер").
+3. Nothing important from the transcript is missing: re-scan for "I'll", "we'll", "let's", "need to", "by Friday", "deadline", "blocker", "decided", "agreed", "I'll take it", and their equivalents in the meeting language.
 4. Names, tickets, versions, and numbers match the source exactly.
 5. The TL;DR alone tells an absent colleague what happened.
 6. Length fits the meeting. Cut repeated points and filler.

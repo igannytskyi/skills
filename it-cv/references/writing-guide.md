@@ -88,7 +88,7 @@ A senior CV full of task-level bullets reads as mid-level. Lead with scope.
 ## Regional notes
 
 - **US / Canada / UK / Ireland / Australia:** no photo, age, marital status, nationality. "Resume" in the US is 1–2 pages.
-- **Germany / Austria / Switzerland:** photo and date of birth are still common in traditional companies but optional and increasingly dropped in tech; tabular "Lebenslauf" style isn't required for international tech companies. Mention work permit / EU Blue Card if relevant. German-language roles expect a German CV.
+- **Germany / Austria / Switzerland:** photo and date of birth are still common in traditional companies but optional and increasingly dropped in tech; the traditional tabular German CV style isn't required for international tech companies. Mention work permit / EU Blue Card if relevant. German-language roles expect a German CV.
 - **Netherlands / Nordics:** English CV fine for tech; no photo needed; direct and concise tone.
 - **France / Spain / Italy / Eastern Europe:** photo common locally, not needed for international companies.
 - **Remote / international:** state time zone and work authorization clearly ("Based in Warsaw, UTC+1, EU citizen").

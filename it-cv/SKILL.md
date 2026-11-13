@@ -1,6 +1,6 @@
 ---
 name: it-cv
-description: Create, keep up to date, tailor, and check a CV/resume for IT roles (engineers, SRE/DevOps, QA, data, EMs, PMs) so it passes ATS parsing and AI screening and convinces a human recruiter and hiring manager. Keeps a master CV and an achievements log in markdown, adds new achievements over time, tailors a version per job description with a match report, audits an existing CV, and exports an ATS-safe .docx and plain text. Use when the user asks to write, update, improve, review, score, or tailor a CV/resume, adapt it to a vacancy, prepare it for applying, check whether it passes ATS/AI filters, or log new achievements for the CV; also "резюме", "CV", "обновить резюме", "адаптировать под вакансию".
+description: Create, keep up to date, tailor, and check a CV/resume for IT roles (engineers, SRE/DevOps, QA, data, EMs, PMs) so it passes ATS parsing and AI screening and convinces a human recruiter and hiring manager. Keeps a master CV and an achievements log in markdown, adds new achievements over time, tailors a version per job description with a match report, audits an existing CV, and exports an ATS-safe .docx and plain text. Use when the user asks to write, update, improve, review, score, or tailor a CV/resume, adapt it to a vacancy, prepare it for applying, check whether it passes ATS/AI filters, or log new achievements for the CV, in any language.
 argument-hint: "[create|update|tailor|review|export] <old CV / LinkedIn / brag doc / job description>"
 ---
 
