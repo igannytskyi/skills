@@ -3,7 +3,8 @@
 
 Python standard library only. Run with `python3 -I`.
 
-  build  CV.md [--out DIR] [--paper a4|letter]   -> DIR/First_Last_CV.docx + .txt
+  build  CV.md [--out DIR] [--paper a4|letter] [--formats pdf,docx,txt]
+                                                 -> DIR/First_Last_CV.pdf / .docx / .txt
   check  CV.(md|docx|txt)                        -> parsing, structure, and language report
   match  CV.(md|docx|txt) JOB.txt                -> job keywords found / missing in the CV
 
@@ -22,6 +23,7 @@ import argparse
 import re
 import sys
 import zipfile
+import zlib
 from datetime import datetime, timezone
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -203,6 +205,186 @@ def blocks_to_text(blocks):
         else:
             lines.append(t)
     return "\n".join(lines).strip() + "\n"
+
+# ---------------------------------------------------------------- pdf writer
+# Text-based PDF with the standard Helvetica fonts (WinAnsi encoding): selectable,
+# parseable by ATS, clickable links, no dependencies. Latin script only.
+
+_HELV = dict(zip(
+    " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+    [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278] + [556] * 10 +
+    [278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833,
+     722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556, 333,
+     556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278,
+     556, 500, 722, 500, 500, 500, 334, 260, 334, 584]))
+_HELV_B = dict(_HELV)
+_HELV_B.update(zip(
+    "!\"&':;?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+    [333, 474, 722, 238, 333, 333, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833,
+     722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611,
+     556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333,
+     611, 556, 778, 556, 556, 500]))
+_EXTRA = {"•": 350, "–": 556, "—": 1000, "·": 278, "‘": 222, "’": 222, "“": 333, "”": 333, "…": 1000,
+          "€": 556, "£": 556, "×": 584, "é": 556, "ü": 556, "ö": 556, "ä": 556}
+_FONTS = {(False, False): "F1", (True, False): "F2", (False, True): "F3", (True, True): "F4"}
+_ASCII_FALLBACK = {"→": "->", "←": "<-", "≈": "~", "≥": ">=", "≤": "<=", "✓": "+", "❓": "?", "−": "-"}
+
+
+def _w(text, bold, size):
+    table = _HELV_B if bold else _HELV
+    return sum(table.get(c, _EXTRA.get(c, 556)) for c in text) * size / 1000
+
+
+def _pdf_safe(text):
+    """Replace characters the standard fonts can't show, before measuring and drawing."""
+    for k, v in _ASCII_FALLBACK.items():
+        text = text.replace(k, v)
+    return text.encode("cp1252", errors="replace").decode("cp1252")
+
+
+def _pdf_str(text):
+    raw = _pdf_safe(text).encode("cp1252")
+    return "(" + "".join(
+        "\\" + chr(b) if chr(b) in "\\()" else chr(b) if 32 <= b < 127 else f"\\{b:03o}" for b in raw) + ")"
+
+
+_LINK = re.compile(r"^(https?://\S+|[\w.+-]+@[\w-]+\.[\w.]+|(www\.)?(linkedin\.com|github\.com|gitlab\.com)/\S+)$")
+
+
+class _PdfLayout:
+    def __init__(self, paper):
+        self.W, self.H = (595.28, 841.89) if paper == "a4" else (612, 792)
+        self.margin_x, self.top, self.bottom = 46, 44, 44
+        self.pages, self.links = [], []
+        self.new_page()
+
+    def new_page(self):
+        self.ops, self.page_links = [], []
+        self.pages.append(self.ops); self.links.append(self.page_links)
+        self.y = self.H - self.top
+
+    def ensure(self, height):
+        if self.y - height < self.bottom:
+            self.new_page()
+
+    def text(self, x, y, s, bold, italic, size):
+        self.ops.append(f"BT /{_FONTS[(bold, italic)]} {size} Tf {x:.2f} {y:.2f} Td {_pdf_str(s)} Tj ET")
+        word = s.strip().rstrip(".,;)")
+        if _LINK.match(word):
+            uri = word if word.startswith("http") else ("mailto:" + word if "@" in word else "https://" + word)
+            self.page_links.append((x, y - 2, x + _w(s, bold, size), y + size, uri))
+
+    def line(self, x1, x2, y, gray=0.5, width=0.6):
+        self.ops.append(f"{gray} G {width} w {x1:.2f} {y:.2f} m {x2:.2f} {y:.2f} l S 0 G")
+
+    def paragraph(self, runs, size, leading, indent=0, first_prefix=None, align="left",
+                  force_bold=False, force_italic=False, space_after=2.0, keep=0.0):
+        """Word-wrap mixed-style runs; first_prefix draws e.g. a bullet in the indent."""
+        left = self.margin_x + indent
+        width = self.W - self.margin_x - left
+        words = []
+        for t, b, i in runs:
+            for piece in re.findall(r"\S+|\s+", t):
+                words.append((piece, b or force_bold, i or force_italic))
+        lines, cur, cur_w = [], [], 0.0
+        for piece, b, i in words:
+            pw = _w(piece, b, size)
+            if piece.isspace():
+                if cur:
+                    cur.append((" ", b, i)); cur_w += _w(" ", b, size)
+                continue
+            if cur and cur_w + pw > width * 0.985:
+                while cur and cur[-1][0] == " ":
+                    cur_w -= _w(" ", cur[-1][1], size); cur.pop()
+                lines.append((cur, cur_w)); cur, cur_w = [], 0.0
+            cur.append((piece, b, i)); cur_w += pw
+        while cur and cur[-1][0] == " ":
+            cur_w -= _w(" ", cur[-1][1], size); cur.pop()
+        if cur:
+            lines.append((cur, cur_w))
+        self.ensure(leading * min(len(lines), 2) + keep)
+        for n, (parts, lw) in enumerate(lines):
+            self.ensure(leading)
+            base = self.y - size
+            x = left + (width - lw) / 2 if align == "center" else left
+            if n == 0 and first_prefix:
+                self.text(self.margin_x + indent - 10, base, first_prefix, False, False, size)
+            for piece, b, i in parts:
+                if piece != " ":
+                    self.text(x, base, piece, b, i, size)
+                x += _w(piece, b, size)
+            self.y -= leading
+        self.y -= space_after
+
+
+def build_pdf(blocks, path, paper="a4", title="CV", author=""):
+    L = _PdfLayout(paper)
+    for kind, text in blocks:
+        text = _pdf_safe(text)
+        r = inline_runs(text)
+        if kind == "name":
+            L.paragraph(r, 17, 21, align="center", force_bold=True, space_after=1)
+        elif kind == "contact":
+            L.paragraph(r, 9.5, 12.5, align="center", space_after=6)
+        elif kind == "h2":
+            L.y -= 7
+            L.paragraph([(plain(text).upper(), True, False)], 11, 13.5, space_after=0, keep=40)
+            L.line(L.margin_x, L.W - L.margin_x, L.y - 0.5)
+            L.y -= 5.5
+        elif kind == "h3":
+            L.y -= 3
+            L.paragraph(r, 10.5, 13, force_bold=True, space_after=0, keep=28)
+        elif kind == "meta":
+            L.paragraph(r, 9.5, 12, force_italic=True, space_after=2, keep=14)
+        elif kind == "bullet":
+            L.paragraph(r, 10.5, 13, indent=14, first_prefix="•", space_after=1.5)
+        else:
+            L.paragraph(r, 10.5, 13, space_after=2.5)
+
+    objs = {}
+    objs[1] = "<< /Type /Catalog /Pages 2 0 R >>"
+    font_ids = {}
+    nid = 3
+    for name, base in (("F1", "Helvetica"), ("F2", "Helvetica-Bold"),
+                       ("F3", "Helvetica-Oblique"), ("F4", "Helvetica-BoldOblique")):
+        objs[nid] = f"<< /Type /Font /Subtype /Type1 /BaseFont /{base} /Encoding /WinAnsiEncoding >>"
+        font_ids[name] = nid; nid += 1
+    fonts = " ".join(f"/{k} {v} 0 R" for k, v in font_ids.items())
+    kids = []
+    for ops, links in zip(L.pages, L.links):
+        stream = zlib.compress("\n".join(ops).encode("latin-1"))
+        content_id, page_id = nid, nid + 1; nid += 2
+        objs[content_id] = (f"<< /Length {len(stream)} /Filter /FlateDecode >>\nstream\n".encode("latin-1")
+                            + stream + b"\nendstream")
+        annots = []
+        for x1, y1, x2, y2, uri in links:
+            objs[nid] = (f"<< /Type /Annot /Subtype /Link /Rect [{x1:.2f} {y1:.2f} {x2:.2f} {y2:.2f}] "
+                         f"/Border [0 0 0] /A << /S /URI /URI {_pdf_str(uri)} >> >>")
+            annots.append(f"{nid} 0 R"); nid += 1
+        annot = f" /Annots [{' '.join(annots)}]" if annots else ""
+        objs[page_id] = (f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {L.W} {L.H}] "
+                         f"/Resources << /Font << {fonts} >> >> /Contents {content_id} 0 R{annot} >>")
+        kids.append(f"{page_id} 0 R")
+    objs[2] = f"<< /Type /Pages /Kids [{' '.join(kids)}] /Count {len(kids)} >>"
+    info_id = nid
+    stamp = datetime.now(timezone.utc).strftime("D:%Y%m%d%H%M%SZ")
+    objs[info_id] = (f"<< /Title {_pdf_str(title)} /Author {_pdf_str(author)} /Creator (cv_tool.py) "
+                     f"/CreationDate ({stamp}) >>")
+
+    out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offsets = {}
+    for i in sorted(objs):
+        offsets[i] = len(out)
+        body = objs[i] if isinstance(objs[i], bytes) else objs[i].encode("latin-1")
+        out += f"{i} 0 obj\n".encode() + body + b"\nendobj\n"
+    xref = len(out)
+    size = max(objs) + 1
+    out += f"xref\n0 {size}\n0000000000 65535 f \n".encode()
+    for i in range(1, size):
+        out += (f"{offsets[i]:010d} 00000 n \n" if i in offsets else "0000000000 65535 f \n").encode()
+    out += f"trailer\n<< /Size {size} /Root 1 0 R /Info {info_id} 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode()
+    Path(path).write_bytes(bytes(out))
+    return len(L.pages)
 
 # ---------------------------------------------------------------- reading any CV
 
@@ -445,6 +627,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build"); b.add_argument("md"); b.add_argument("--out", default="build")
     b.add_argument("--paper", choices=["a4", "letter"], default="a4"); b.add_argument("--name")
+    b.add_argument("--formats", default="pdf,docx,txt", help="comma-separated: pdf,docx,txt")
     c = sub.add_parser("check"); c.add_argument("file")
     m = sub.add_parser("match"); m.add_argument("cv"); m.add_argument("job")
     a = ap.parse_args()
@@ -454,9 +637,18 @@ def main():
         person = next((plain(t) for k, t in blocks if k == "name"), "CV")
         stem = a.name or (re.sub(r"[^\w]+", "_", person).strip("_") + "_CV")
         out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
-        build_docx(blocks, out / f"{stem}.docx", a.paper, title=f"{person} CV", author=person)
-        (out / f"{stem}.txt").write_text(blocks_to_text(blocks), encoding="utf8")
-        print(f"Wrote {out / (stem + '.docx')} and {out / (stem + '.txt')}")
+        formats = {f.strip().lower() for f in a.formats.split(",") if f.strip()}
+        written = []
+        if "pdf" in formats:
+            pages = build_pdf(blocks, out / f"{stem}.pdf", a.paper, title=f"{person} CV", author=person)
+            written.append(f"{out / (stem + '.pdf')} ({pages} page{'s' if pages > 1 else ''})")
+        if "docx" in formats:
+            build_docx(blocks, out / f"{stem}.docx", a.paper, title=f"{person} CV", author=person)
+            written.append(str(out / f"{stem}.docx"))
+        if "txt" in formats:
+            (out / f"{stem}.txt").write_text(blocks_to_text(blocks), encoding="utf8")
+            written.append(str(out / f"{stem}.txt"))
+        print("Wrote:\n  " + "\n  ".join(written))
     elif a.cmd == "check":
         check(a.file)
     else:

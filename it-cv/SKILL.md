@@ -1,6 +1,6 @@
 ---
 name: it-cv
-description: Create, keep up to date, tailor, and check a CV/resume for IT roles (engineers, SRE/DevOps, QA, data, EMs, PMs) so it passes ATS parsing and AI screening and convinces a human recruiter and hiring manager. Keeps a master CV and an achievements log in markdown, adds new achievements over time, tailors a version per job description with a match report, audits an existing CV, and exports an ATS-safe .docx and plain text. Use when the user asks to write, update, improve, review, score, or tailor a CV/resume, adapt it to a vacancy, prepare it for applying, check whether it passes ATS/AI filters, or log new achievements for the CV, in any language.
+description: Create, keep up to date, tailor, and check a CV/resume for IT roles (engineers, SRE/DevOps, QA, data, EMs, PMs) so it passes ATS parsing and AI screening and convinces a human recruiter and hiring manager. Keeps a master CV and an achievements log in markdown, adds new achievements over time, tailors a version per job description with a match report, audits an existing CV, and exports an ATS-safe PDF, .docx, and plain text. Use when the user asks to write, update, improve, review, score, or tailor a CV/resume, adapt it to a vacancy, prepare it for applying, check whether it passes ATS/AI filters, or log new achievements for the CV, in any language.
 argument-hint: "[create|update|tailor|review|export] <old CV / LinkedIn / brag doc / job description>"
 ---
 
@@ -119,12 +119,16 @@ Output: overall verdict in 2 lines, a scores table (Parsing, Skim, Evidence, Key
 ### export
 
 ```bash
-python3 -I scripts/cv_tool.py build cv/master.md --out cv/build/       # .docx + .txt
-python3 -I scripts/cv_tool.py check cv/build/Name_CV.docx             # re-check the output
+python3 -I scripts/cv_tool.py build cv/master.md --out cv/build/                 # .pdf + .docx + .txt
+python3 -I scripts/cv_tool.py build cv/tailored/2026-11-acme-sre.md --out cv/build/ --formats pdf --paper letter
+python3 -I scripts/cv_tool.py check cv/build/Name_CV.docx                       # re-check the output
 ```
 
-- The `.docx` is single-column, Calibri 10.5pt, standard headings, contact in the body, real bullets, no tables: the safest format for ATS uploads. Name it `Firstname_Lastname_CV.docx`.
-- For a PDF, open the `.docx` in Word, Pages, or Google Docs and export as PDF (text-based, not "print to image"). Send PDF when the portal accepts it and a human will read it; send .docx when the portal asks for it or parses badly.
+- No dependencies: the script writes all three formats with the Python standard library.
+- The `.pdf` is text-based (Helvetica, real selectable text in reading order, clickable email/LinkedIn/GitHub links), single column, A4 by default (`--paper letter` for US/Canada). It's what most people should send: it looks the same everywhere and modern ATS parse it well. Latin script only; `→`, `≈` and similar symbols are converted to ASCII.
+- The `.docx` is single-column, Calibri 10.5pt, standard headings, contact in the body, real bullets, no tables. Send it when a portal asks for Word or parses the PDF badly, or when the user wants to fine-tune the layout by hand.
+- Files are named `Firstname_Lastname_CV.*` (override with `--name`). Long CVs flow onto page 2 automatically; the build prints the page count, so if it says 3 pages, cut.
+- After building, check the PDF the way an ATS sees it: open it, select all, copy, paste into a plain-text editor. Name, contacts, titles, companies, and dates should all come out in order.
 - The `.txt` is for pasting into application forms and for checking how a parser "sees" the CV.
 - LinkedIn: on request, produce a headline (≤220 chars), an About section (first person, 3–5 short paragraphs), and Experience entries adapted from the master. Keep LinkedIn and CV consistent in titles and dates.
 
